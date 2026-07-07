@@ -885,6 +885,8 @@ const DEFAULT_TASKS = [
   { section: "Morning Prayer", id: "t10", text: "Journal — write what you hear or feel stirred by", journalPrompt: true },
   { section: "Morning Prayer", id: "t11", text: "Pray ACTS", ref: "Adoration · Contrition · Thanksgiving · Supplication", prayerKey: "acts" },
   { section: "Morning Prayer", id: "t12", text: "Pray Psalm 32:8", prayerKey: "psalm32" },
+  { section: "Morning Prayer", id: "t24", text: "Daily Rotating Prayer", ref: "A different healing/deliverance prayer each day", rotatingKey: "dailyPrayer" },
+  { section: "Morning Prayer", id: "t25", text: "Who and What I Am in Christ", ref: "A few identity truths to declare — rotates daily", rotatingKey: "identity" },
   { section: "During the Day", id: "t13", text: "Saint of the day — learn from them", dynamic: "saintOfDay" },
   { section: "During the Day", id: "t14", text: "Stay on the offensive — be vigilant, not passive" },
   { section: "During the Day", id: "t15", text: "Praise God regardless of how you feel" },
@@ -925,6 +927,60 @@ const PRAYERS = [
   { key: "psalm32", title: "Psalm 32:8", ref: "Daily Scripture", body: `I will instruct you and teach you in the way you should go; I will counsel you with my eye upon you.` },
   { key: "acts", title: "ACTS Prayer", ref: "Method", body: `A — Adoration\nStart with praise. Tell God who He is, not what you want. Just worship.\n\nC — Contrition\nBring your sins before Him honestly. Ask for forgiveness. Sit with the weight of it. This is where confession is born.\n\nT — Thanksgiving\nThank Him for specific things — today, this week, your life.\n\nS — Supplication\nNow you can ask. For yourself, for others, for the things on your heart.` },
   { key: "wounds", title: "Five Holy Wounds of Christ", ref: "Cover All Senses", body: `In the name of the Father, and of the Son, and of the Holy Spirit. Amen.\n\nLord Jesus Christ, I come before You with faith and gratitude. I ask You to cover me with Your Precious Blood and protect me through Your Five Holy Wounds.\n\nCover my eyes with Your holy wounds, that I may see only what is good, pure, and pleasing to You.\n\nCover my ears with Your holy wounds, that I may hear Your voice and turn away from words that lead me away from You.\n\nCover my mouth with Your holy wounds, that my words may bring truth, kindness, and encouragement, and that I may refrain from gossip, anger, and falsehood.\n\nCover my mind with Your holy wounds, that my thoughts may be guided by Your wisdom, peace, and love.\n\nCover my heart with Your holy wounds, that I may love You above all things and love others with compassion, forgiveness, and humility.\n\nLord Jesus, through the wounds in Your hands, guide all my actions. Through the wounds in Your feet, direct my steps along the path of righteousness. Through the wound in Your sacred side, draw me into Your divine mercy and keep me close to Your Sacred Heart.\n\nProtect me from all evil, strengthen me in temptation, and fill me with Your Holy Spirit. May I live this day in Your grace and bring glory to Your holy name. Amen.` },
+];
+
+// Rotating roster — from the "Restore Wholeness Perth" retreat journal (used with
+// permission). Only prayers meant to be prayed solo are included here; the ones
+// explicitly marked "a small group leader/Prayer Facilitator will guide you" are
+// deliberately left out, since those are inner-healing exercises meant to be led
+// by a trained person, not automated into a solo daily app.
+const ROTATING_PRAYERS = [
+  { title: "Prayer of Surrender", body: `Lord Jesus, I come before you, just as I am, I am sorry for my sins, I repent of my sins, please forgive me. In your Name, I forgive all others for what they have done against me. I renounce Satan, the evil spirits and all their works. I give you my entire self, Lord Jesus, now and forever. I invite you into my life, Jesus. I accept you as my Lord, God and Savior. Heal me, change me, strengthen me in body, soul, and spirit. Come Lord Jesus, cover me with your Precious Blood, and fill me with your Holy Spirit. I love you, Lord Jesus. I praise you Jesus. I thank you Jesus. I shall follow you every day of my life. Amen.\n\n(Adapted from Miracle Prayer © 1993 Peter M. Rookey and Servite Fathers O.S.M.)` },
+  { title: "Consecrating Imagination Prayer", body: `Dear Father God, I come to you with a repentant heart for allowing my mind and imagination to be defiled by fantasy, false identities, wrong thoughts, words, pornographic images, and deeds. Forgive me Lord for allowing the enemy access to my soul through these avenues, sometimes leading me into sinful actions. Please remove all evil imaginations and images from my mind and wrong desires from my soul. I am a temple of the Holy Spirit so I take back all territory the enemy has gained and I will no longer give him access to defile me. I renounce cooperating with lust and fantasy including pornography, fantasy games, ungodly movies/TV shows, and misuse of social media. Lord God, purify my mind, heart, and imagination, and give me the grace to resist fantasizing. I claim back my true identity, as God designed me. I renounce the spirits of fantasy, lust and deception and command them to leave me now in Jesus's Name. I consecrate my eyes, my conscious and subconscious mind, will and imagination, to the purifying power and Lordship of the Holy Spirit. In the name of Jesus Christ. Amen.\n\n(1 Cor. 6:18–20, Song of Sol. 1:4)` },
+  { title: "Prayer for Baptism of the Holy Spirit", body: `Heavenly Father, I thank You that I am under the protection of the precious Blood of Jesus, which has cleansed me from all sin. Dear Lord Jesus, I thank you that I have received the Holy Spirit at Baptism and Confirmation. Please now release me in the full power of your Holy Spirit and gifts, and let me praise you in a new language beyond the limitations of my intellect. Thank you, Lord. I believe that You're doing this right now! In Jesus Name I pray. Amen.` },
+  { title: "Renouncing Things Incompatible with Christianity", body: `Dear Father, if I have believed, accepted, taught, or taken part in any teachings or practices contrary to Your will or Your Word, or in any other way displeasing to You, I am truly sorry, and I ask You to forgive me in the Name of Jesus Christ. I especially repent of: (pause and name anything specific).\n\nIn the name of Jesus Christ, under His precious Blood I do renounce these things, and with Your help, I promise You I will not engage in them anymore. Any spirits associated with these things, I renounce cooperating with you, I bind you, I break your power over me and I cast you out of my life, never to return, in Jesus's Name and under His precious blood. I renounce Satan and ALL of His works. Amen.` },
+  { title: "Wish I Wanted to Forgive", body: `Dear Father God, I wish I wanted to forgive (name the person). Please forgive me for any resentment or bitterness in my heart. I acknowledge I can't do this on my own strength and ask for the grace of the Holy Spirit to help me want to forgive them, so that I might be healed. In Jesus's name. Amen.` },
+  { title: "Forgiving Out of Obedience to God", body: `Dear Heavenly Father, I come in obedience to You to forgive (name the person). I choose to forgive them for all the hurts they may have knowingly or unknowingly caused in my life. I set them free of all blame, and I set myself free from any unforgiveness toward them, in Jesus' name. Amen.` },
+  { title: "The 4 R's: Repent, Renounce, Reject, Replace", body: `Pray through these when facing a repeated temptation or stronghold — repeat daily until it breaks.\n\n1. REPENT\n"In Jesus's name, I repent for cooperating with ___ or the spirit of ___."\n\n2. RENOUNCE\n"In Jesus's name, I renounce cooperating with ___."\n\n3. REJECT\n"In Jesus's name, I reject any spirit of ___ and I command it to leave me now and never return."\n\n4. REPLACE\n"Holy Spirit, I consecrate this area to You, bring it under the Lordship of Jesus Christ, and I ask You to replace ___ with ___."` },
+];
+
+const IDENTITY_AFFIRMATIONS = [
+  "A Child of God / King's kid — Rom. 8:14,16; Rev. 1:6",
+  "A New Creature — 2 Cor. 5:17",
+  "An Heir of eternal life — 1 John 5:11–12",
+  "Joint heir with Jesus — Rom. 8:17; Acts 20:32",
+  "More than a conqueror — Rom. 8:37",
+  "An Overcomer — Rev. 12:11; Luke 10:19; 1 Jn. 5:5",
+  "A partaker of God's Divine Nature — 2 Pet. 1:4",
+  "Incorruptible, teachable, quiet — 1 Pet. 1:23, 3:4",
+  "God's temple — 1 Cor. 6:19; John 14:23",
+  "Purchased with Jesus Christ's blood — 1 Cor. 6:19b–20a",
+  "Born again, spiritually — John 3:3, 7",
+  "Saved by grace through faith — Eph. 2:8",
+  "Justified by faith, just as if I'd never sinned — Rom. 5:1",
+  "Washed and purified from sin — Rev. 1:5b; Isa. 1:18",
+  "One spirit with the Lord — 1 Cor. 6:17",
+  "Casting down vain and evil imaginations — 2 Cor. 10:4–5",
+  "Bringing every thought captive to Christ — 2 Cor. 10:5",
+  "Being transformed by renewing my mind — Rom. 12:1–2",
+  "Chosen before the foundation of the world — Eph. 1:4",
+  "Sealed by the Holy Spirit of promise — Eph. 1:13",
+  "Praying always in the Spirit — Eph. 6:18; 1 Cor. 14:14–15",
+  "Healthy in body and soul — 3 John 1:2",
+  "Never condemned — Rom. 8:1",
+  "An expression of Jesus' light to the world — Matt. 5:14",
+  "Doing all things through Christ's strength — Phil. 4:13",
+  "Watched over by God's angels — Ps. 91:11",
+  "Kept in safety wherever I go — Ps. 91:12",
+  "Free from fear by day and night — Ps. 91:5",
+  "Living in God's omnipresence — Ps. 139:7; Jer. 23:23",
+  "Not ashamed — 2 Tim. 1:12; Phil. 1:20",
+  "Loved unconditionally and eternally — Jer. 31:3; John 3:16; Rom. 5:8",
+  "Filled with God's wisdom — James 1:5; Phil. 2:5",
+  "A doer of God's Word — James 1:22",
+  "Filled with God's gifts — James 1:17; 1 Cor. 12:7–11",
+  "Clothed daily with the Armor of God — Eph. 6:10–18",
+  "Abiding in love — 1 Cor. 13:13",
 ];
 
 const MSGS = [
@@ -1294,9 +1350,38 @@ function startPraySession(sectionFilter) {
 }
 
 function findPrayerBody(task) {
-  if (!task.prayerKey) return null;
-  const p = PRAYERS.find(pr => pr.key === task.prayerKey);
-  return p ? p.body : null;
+  if (task.prayerKey) {
+    const p = PRAYERS.find(pr => pr.key === task.prayerKey);
+    return p ? p.body : null;
+  }
+  if (task.rotatingKey === 'dailyPrayer') return getRotatingPrayer().body;
+  if (task.rotatingKey === 'identity') return getRotatingIdentityBody();
+  return null;
+}
+
+// ── Daily rotation (deterministic by date, so it's stable all day) ─────────
+
+function daysSinceEpoch(dateStr) {
+  return Math.floor(new Date(dateStr + 'T00:00:00').getTime() / 86400000);
+}
+
+function getRotatingPrayer() {
+  const idx = daysSinceEpoch(today()) % ROTATING_PRAYERS.length;
+  return ROTATING_PRAYERS[idx];
+}
+
+function getRotatingIdentityBody() {
+  const count = 4;
+  const day = daysSinceEpoch(today());
+  const start = (day * count) % IDENTITY_AFFIRMATIONS.length;
+  const picks = [];
+  for (let i = 0; i < count; i++) picks.push(IDENTITY_AFFIRMATIONS[(start + i) % IDENTITY_AFFIRMATIONS.length]);
+  return `Father God, I thank You that I am...\n\n` + picks.map(a => `• ${a}`).join('\n');
+}
+
+function getCardTitle(task) {
+  if (task.rotatingKey === 'dailyPrayer') return getRotatingPrayer().title;
+  return task.text;
 }
 
 // ── Daily readings / saint of the day (cpbjr/catholic-readings-api) ────────
@@ -1475,7 +1560,7 @@ function renderSessionCard() {
   const body = findPrayerBody(task);
   document.getElementById('session-progress').textContent = `${sessionIndex + 1} / ${sessionQueue.length}`;
   document.getElementById('session-section').textContent = task.section;
-  document.getElementById('session-title').textContent = task.text;
+  document.getElementById('session-title').textContent = getCardTitle(task);
   const bodyEl = document.getElementById('session-body');
   const linkEl = document.getElementById('session-link');
   const imgEl = document.getElementById('session-image');
