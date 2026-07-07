@@ -491,9 +491,85 @@ body {
 .session-title { font-size: 24px; font-weight: 700; line-height: 1.35; color: var(--text); margin-bottom: 16px; }
 .session-body { font-size: 16px; line-height: 1.85; color: var(--text2); white-space: pre-line; }
 .session-body.session-body-empty { font-size: 14px; font-style: italic; color: var(--text3); }
+.session-link { display: none; margin-top: 14px; font-size: 14px; font-weight: 600; color: var(--accent); text-decoration: none; }
+.session-journal-btn {
+  display: none;
+  margin-top: 18px;
+  padding: 10px 16px;
+  background: var(--accent-light);
+  color: var(--accent);
+  border: 1px solid var(--accent-mid);
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font);
+  cursor: pointer;
+}
+.session-journal-btn.show { display: inline-block; }
 .session-bottom { padding: 12px 20px max(20px, env(safe-area-inset-bottom)); flex-shrink: 0; }
 .session-complete-btn { margin-top: 0; }
 .session-hint { text-align: center; font-size: 11px; color: var(--text3); margin-top: 10px; }
+.session-timer {
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  background: var(--accent-light);
+  border: none;
+  border-radius: 100px;
+  padding: 7px 12px;
+  cursor: pointer;
+  min-width: 34px;
+}
+.session-timer.paused { color: var(--text3); background: var(--bg3); }
+
+/* ── Journal (diary) ── */
+.journal-fab {
+  position: fixed;
+  right: 16px;
+  bottom: calc(66px + max(10px, env(safe-area-inset-bottom)));
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  border: none;
+  font-size: 21px;
+  box-shadow: 0 6px 18px rgba(37,99,235,0.4);
+  z-index: 150;
+  cursor: pointer;
+}
+.journal-title { font-size: 15px; font-weight: 700; color: var(--text); }
+.journal-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 450;
+  display: none;
+  flex-direction: column;
+}
+.journal-overlay.open { display: flex; }
+.journal-scroll { flex: 1; overflow-y: auto; padding: 4px 20px max(24px, env(safe-area-inset-bottom)); }
+.journal-entry { margin-bottom: 20px; }
+.journal-entry-date { font-size: 12px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+.journal-entry-text {
+  width: 100%;
+  min-height: 70px;
+  padding: 12px;
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  font-size: 15px;
+  font-family: var(--font);
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--bg2);
+  resize: none;
+  overflow: hidden;
+  outline: none;
+}
+.journal-entry-text:focus { border-color: var(--accent); }
+.journal-divider { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); font-weight: 600; margin: 4px 0 16px; padding-top: 12px; border-top: 1px solid var(--border); }
+.journal-empty-hint { font-size: 13px; color: var(--text3); font-style: italic; margin-top: 16px; }
 
 /* ── Complete banner ── */
 .complete-banner {
@@ -653,21 +729,33 @@ body {
 <!-- Prayer session (full-screen guided flow) -->
 <div class="prayer-session" id="prayer-session">
   <div class="session-top">
-    <button class="session-close" onclick="closeSession(false)">✕</button>
+    <button class="session-close" id="prayer-session-close" onclick="closeSession(false)">✕</button>
     <div class="session-progress" id="session-progress">1 / 23</div>
-    <div style="width:34px"></div>
+    <button class="session-timer" id="session-timer" onclick="toggleCardTimer()">00:00</button>
   </div>
   <div class="session-scroll" id="session-scroll">
     <div class="session-card" id="session-card">
       <div class="session-section" id="session-section"></div>
       <div class="session-title" id="session-title"></div>
       <div class="session-body" id="session-body"></div>
+      <a class="session-link" id="session-link" target="_blank" rel="noopener"></a>
+      <button class="session-journal-btn" id="session-journal-btn" onclick="openJournal()">📝 Write in Journal</button>
     </div>
   </div>
   <div class="session-bottom">
     <button class="modal-btn session-complete-btn" onclick="completeSessionCard()">Complete →</button>
     <div class="session-hint">Swipe left or tap Complete to continue</div>
   </div>
+</div>
+
+<!-- Journal (diary, accessible anytime) -->
+<button class="journal-fab" id="journal-fab" onclick="openJournal()" title="Journal">📝</button>
+<div class="journal-overlay" id="journal-overlay">
+  <div class="session-top">
+    <div class="journal-title">📔 Journal</div>
+    <button class="session-close" id="journal-close" onclick="closeJournal()">✕</button>
+  </div>
+  <div class="journal-scroll" id="journal-list"></div>
 </div>
 
 <!-- Today tab -->
@@ -774,13 +862,13 @@ const DEFAULT_TASKS = [
   { section: "Morning", id: "t4", text: "Protection prayer" },
   { section: "Morning", id: "t5", text: "Pray Sirach 22:27–23:6", ref: "Guard over mouth, mind and heart", prayerKey: "sirach" },
   { section: "Morning", id: "t6", text: "Pray Psalm 19:14", ref: "Preserve me from willful sin", prayerKey: "psalm19" },
-  { section: "Morning", id: "t7", text: "Ask the 6 wounds of Christ to cover all senses" },
-  { section: "Personal Prayer (30 min)", id: "t8", text: "Read the Mass readings of the day", ref: "Holy Spirit, give me what I need today" },
-  { section: "Personal Prayer (30 min)", id: "t9", text: "Sit in silence with the Word for 10+ minutes" },
-  { section: "Personal Prayer (30 min)", id: "t10", text: "Journal — write what you hear or feel stirred by" },
+  { section: "Morning", id: "t7", text: "Ask the 6 wounds of Christ to cover all senses", prayerKey: "wounds" },
+  { section: "Personal Prayer (30 min)", id: "t8", text: "Read the Mass readings of the day", ref: "Holy Spirit, give me what I need today", dynamic: "massReadings" },
+  { section: "Personal Prayer (30 min)", id: "t9", text: "Sit in silence with the Word for 10+ minutes", journalPrompt: true },
+  { section: "Personal Prayer (30 min)", id: "t10", text: "Journal — write what you hear or feel stirred by", journalPrompt: true },
   { section: "Personal Prayer (30 min)", id: "t11", text: "Pray ACTS", ref: "Adoration · Contrition · Thanksgiving · Supplication", prayerKey: "acts" },
   { section: "Personal Prayer (30 min)", id: "t12", text: "Pray Psalm 32:8", prayerKey: "psalm32" },
-  { section: "During the Day", id: "t13", text: "Saint of the day — learn from them" },
+  { section: "During the Day", id: "t13", text: "Saint of the day — learn from them", dynamic: "saintOfDay" },
   { section: "During the Day", id: "t14", text: "Stay on the offensive — be vigilant, not passive" },
   { section: "During the Day", id: "t15", text: "Praise God regardless of how you feel" },
   { section: "During the Day", id: "t16", text: "Note any moment where God seemed to speak" },
@@ -812,6 +900,7 @@ const PRAYERS = [
   { key: "psalm19", title: "Psalm 19:14", ref: "Daily Scripture", body: `Let the words of my mouth and the meditation of my heart be acceptable in your sight, O Lord, my rock and my redeemer.\n\n— Preserve me from willful sin.` },
   { key: "psalm32", title: "Psalm 32:8", ref: "Daily Scripture", body: `I will instruct you and teach you in the way you should go; I will counsel you with my eye upon you.` },
   { key: "acts", title: "ACTS Prayer", ref: "Method", body: `A — Adoration\nStart with praise. Tell God who He is, not what you want. Just worship.\n\nC — Contrition\nBring your sins before Him honestly. Ask for forgiveness. Sit with the weight of it. This is where confession is born.\n\nT — Thanksgiving\nThank Him for specific things — today, this week, your life.\n\nS — Supplication\nNow you can ask. For yourself, for others, for the things on your heart.` },
+  { key: "wounds", title: "Five Holy Wounds of Christ", ref: "Cover All Senses", body: `In the name of the Father, and of the Son, and of the Holy Spirit. Amen.\n\nLord Jesus Christ, I come before You with faith and gratitude. I ask You to cover me with Your Precious Blood and protect me through Your Five Holy Wounds.\n\nCover my eyes with Your holy wounds, that I may see only what is good, pure, and pleasing to You.\n\nCover my ears with Your holy wounds, that I may hear Your voice and turn away from words that lead me away from You.\n\nCover my mouth with Your holy wounds, that my words may bring truth, kindness, and encouragement, and that I may refrain from gossip, anger, and falsehood.\n\nCover my mind with Your holy wounds, that my thoughts may be guided by Your wisdom, peace, and love.\n\nCover my heart with Your holy wounds, that I may love You above all things and love others with compassion, forgiveness, and humility.\n\nLord Jesus, through the wounds in Your hands, guide all my actions. Through the wounds in Your feet, direct my steps along the path of righteousness. Through the wound in Your sacred side, draw me into Your divine mercy and keep me close to Your Sacred Heart.\n\nProtect me from all evil, strengthen me in temptation, and fill me with Your Holy Spirit. May I live this day in Your grace and bring glory to Your holy name. Amen.` },
 ];
 
 const MSGS = [
@@ -1164,6 +1253,86 @@ function findPrayerBody(task) {
   return p ? p.body : null;
 }
 
+// ── Daily readings / saint of the day (cpbjr/catholic-readings-api) ────────
+
+async function fetchDailyData(cacheKey, url) {
+  const cached = getState()[cacheKey];
+  if (cached) return cached;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('bad status ' + res.status);
+    const data = await res.json();
+    const s = getState(); s[cacheKey] = data; setState(s);
+    return data;
+  } catch (e) {
+    return null;
+  }
+}
+
+function dateUrlParts(d) {
+  const [y, m, day] = d.split('-');
+  return { y, path: `${m}-${day}` };
+}
+
+function formatMassReadings(data) {
+  if (!data || !data.readings) return null;
+  const r = data.readings;
+  const lines = [`First Reading: ${r.firstReading}`, `Responsorial Psalm: ${r.psalm}`];
+  if (r.secondReading) lines.push(`Second Reading: ${r.secondReading}`);
+  lines.push(`Gospel: ${r.gospel}`);
+  return lines.join('\n\n');
+}
+
+function formatSaint(data) {
+  if (!data || !data.celebration) return null;
+  const c = data.celebration;
+  if (!c.name) return null;
+  const lines = [c.name];
+  if (c.type && c.type !== 'FERIA') lines.push(c.type.charAt(0) + c.type.slice(1).toLowerCase());
+  if (c.quote) lines.push(`"${c.quote}"`);
+  if (c.description) lines.push(c.description);
+  return lines.join('\n\n');
+}
+
+function loadDynamicCard(task, bodyEl, linkEl) {
+  const d = today();
+  const { y, path } = dateUrlParts(d);
+  bodyEl.textContent = 'Loading…';
+  bodyEl.classList.add('session-body-empty');
+  linkEl.style.display = 'none';
+
+  if (task.dynamic === 'massReadings') {
+    fetchDailyData('readings_' + d, `https://cpbjr.github.io/catholic-readings-api/readings/${y}/${path}.json`)
+      .then(data => {
+        if (sessionQueue[sessionIndex] !== task) return;
+        const text = formatMassReadings(data);
+        if (text) {
+          bodyEl.textContent = text;
+          bodyEl.classList.remove('session-body-empty');
+        } else {
+          bodyEl.textContent = "Couldn't load today's readings — check your connection.";
+        }
+        if (data && data.usccbLink) {
+          linkEl.href = data.usccbLink;
+          linkEl.textContent = 'Read full text at USCCB →';
+          linkEl.style.display = 'inline-block';
+        }
+      });
+  } else if (task.dynamic === 'saintOfDay') {
+    fetchDailyData('saint_' + d, `https://cpbjr.github.io/catholic-readings-api/liturgical-calendar/${y}/${path}.json`)
+      .then(data => {
+        if (sessionQueue[sessionIndex] !== task) return;
+        const text = formatSaint(data);
+        if (text) {
+          bodyEl.textContent = text;
+          bodyEl.classList.remove('session-body-empty');
+        } else {
+          bodyEl.textContent = "No named saint today — it's a feria in Ordinary Time.";
+        }
+      });
+  }
+}
+
 function renderSessionCard() {
   const task = sessionQueue[sessionIndex];
   const body = findPrayerBody(task);
@@ -1171,7 +1340,12 @@ function renderSessionCard() {
   document.getElementById('session-section').textContent = task.section;
   document.getElementById('session-title').textContent = task.text;
   const bodyEl = document.getElementById('session-body');
-  if (body) {
+  const linkEl = document.getElementById('session-link');
+  linkEl.style.display = 'none';
+
+  if (task.dynamic) {
+    loadDynamicCard(task, bodyEl, linkEl);
+  } else if (body) {
     bodyEl.textContent = body;
     bodyEl.classList.remove('session-body-empty');
   } else if (task.ref) {
@@ -1181,7 +1355,10 @@ function renderSessionCard() {
     bodyEl.textContent = '';
     bodyEl.classList.add('session-body-empty');
   }
+
+  document.getElementById('session-journal-btn').classList.toggle('show', !!task.journalPrompt);
   document.getElementById('session-scroll').scrollTop = 0;
+  startCardTimer();
 
   const card = document.getElementById('session-card');
   card.style.transition = 'none';
@@ -1192,6 +1369,38 @@ function renderSessionCard() {
     card.style.transform = 'translateX(0)';
     card.style.opacity = '1';
   });
+}
+
+// ── Per-card timer ───────────────────────────────────────────────────────
+
+let cardTimerInterval = null;
+let cardTimerSeconds = 0;
+let cardTimerPaused = false;
+
+function startCardTimer() {
+  clearInterval(cardTimerInterval);
+  cardTimerSeconds = 0;
+  cardTimerPaused = false;
+  const el = document.getElementById('session-timer');
+  el.classList.remove('paused');
+  el.textContent = '00:00';
+  cardTimerInterval = setInterval(() => {
+    if (cardTimerPaused) return;
+    cardTimerSeconds++;
+    const m = String(Math.floor(cardTimerSeconds / 60)).padStart(2, '0');
+    const s = String(cardTimerSeconds % 60).padStart(2, '0');
+    el.textContent = `${m}:${s}`;
+  }, 1000);
+}
+
+function toggleCardTimer() {
+  cardTimerPaused = !cardTimerPaused;
+  document.getElementById('session-timer').classList.toggle('paused', cardTimerPaused);
+}
+
+function stopCardTimer() {
+  clearInterval(cardTimerInterval);
+  cardTimerInterval = null;
 }
 
 function completeSessionCard() {
@@ -1218,9 +1427,75 @@ function completeSessionCard() {
 }
 
 function closeSession(completedAll) {
+  stopCardTimer();
   document.getElementById('prayer-session').classList.remove('open');
   buildChecklist();
   if (completedAll) showToast('Prayer time complete 🙏');
+}
+
+// ── Journal (diary, accessible anytime via the corner button) ──────────────
+
+let journalSaveTimers = {};
+
+function openJournal() {
+  buildJournal();
+  document.getElementById('journal-overlay').classList.add('open');
+}
+
+function closeJournal() {
+  document.getElementById('journal-overlay').classList.remove('open');
+}
+
+function getJournalDates() {
+  const s = getState();
+  return Object.keys(s)
+    .filter(k => k.startsWith('journal_') && s[k] && String(s[k]).trim())
+    .map(k => k.slice('journal_'.length))
+    .sort((a, b) => b.localeCompare(a));
+}
+
+function buildJournal() {
+  const s = getState();
+  const todayStr = today();
+  const pastDates = getJournalDates().filter(d => d !== todayStr);
+  let html = renderJournalEntry(todayStr, s['journal_' + todayStr] || '', true);
+  if (pastDates.length) {
+    html += '<div class="journal-divider">Past entries</div>';
+    pastDates.forEach(d => { html += renderJournalEntry(d, s['journal_' + d] || '', false); });
+  } else {
+    html += '<div class="journal-empty-hint">Past reflections will appear here as you write them.</div>';
+  }
+  const list = document.getElementById('journal-list');
+  list.innerHTML = html;
+  list.querySelectorAll('.journal-entry-text').forEach(autoGrowTextarea);
+}
+
+function renderJournalEntry(dateStr, text, isToday) {
+  const d = new Date(dateStr + 'T00:00:00');
+  const label = d.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const placeholder = isToday ? "What's on your heart today? Bullet points welcome —\n- grateful for...\n- struggled with..." : '';
+  return `<div class="journal-entry">
+    <div class="journal-entry-date">${isToday ? 'Today · ' : ''}${label}</div>
+    <textarea class="journal-entry-text" data-date="${dateStr}" placeholder="${escHtml(placeholder)}" oninput="onJournalInput(this)">${escHtml(text)}</textarea>
+  </div>`;
+}
+
+function autoGrowTextarea(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+
+function onJournalInput(el) {
+  autoGrowTextarea(el);
+  const date = el.dataset.date;
+  clearTimeout(journalSaveTimers[date]);
+  journalSaveTimers[date] = setTimeout(() => {
+    const s = getState();
+    const val = el.value;
+    if (val.trim()) s['journal_' + date] = val;
+    else delete s['journal_' + date];
+    setState(s);
+  }, 400);
 }
 
 let sessionTouchStartX = null;
@@ -1492,6 +1767,22 @@ function updateDate() {
   });
 }
 
+// ── Incoming note bridge (e.g. from an iOS Shortcut pulling from Notes) ────
+// Visit ?note=<url-encoded text> and it's appended to today's journal entry.
+
+function checkIncomingNote() {
+  const params = new URLSearchParams(location.search);
+  const note = params.get('note');
+  if (!note || !note.trim()) return;
+  const d = today();
+  const s = getState();
+  const existing = s['journal_' + d] || '';
+  s['journal_' + d] = existing ? existing + '\n\n' + note.trim() : note.trim();
+  setState(s);
+  history.replaceState(null, '', location.pathname);
+  showToast('📝 Note added to today’s journal');
+}
+
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').catch(() => {});
 }
@@ -1505,6 +1796,7 @@ updateNotifBtn();
 checkOpenReminder();
 scheduleNotif();
 checkInstallBanner();
+checkIncomingNote();
 </script>
 </body>
 </html>
