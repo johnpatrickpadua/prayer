@@ -488,6 +488,8 @@ body {
   font-weight: 700;
   margin-bottom: 10px;
 }
+.session-image { display: none; width: 100%; max-height: 240px; object-fit: cover; border-radius: 14px; margin-bottom: 16px; background: var(--bg3); }
+.session-image.show { display: block; }
 .session-title { font-size: 24px; font-weight: 700; line-height: 1.35; color: var(--text); margin-bottom: 16px; }
 .session-body { font-size: 16px; line-height: 1.85; color: var(--text2); white-space: pre-line; }
 .session-body.session-body-empty { font-size: 14px; font-style: italic; color: var(--text3); }
@@ -736,6 +738,7 @@ body {
   <div class="session-scroll" id="session-scroll">
     <div class="session-card" id="session-card">
       <div class="session-section" id="session-section"></div>
+      <img class="session-image" id="session-image" alt="">
       <div class="session-title" id="session-title"></div>
       <div class="session-body" id="session-body"></div>
       <a class="session-link" id="session-link" target="_blank" rel="noopener"></a>
@@ -1283,15 +1286,72 @@ function formatMassReadings(data) {
   return lines.join('\n\n');
 }
 
-function formatSaint(data) {
-  if (!data || !data.celebration) return null;
-  const c = data.celebration;
-  if (!c.name) return null;
+async function fetchWikiSummary(name) {
+  try {
+    const searchRes = await fetch(`https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(name)}&limit=1&format=json&origin=*`);
+    const searchData = await searchRes.json();
+    const title = searchData && searchData[1] && searchData[1][0];
+    if (!title) return null;
+    const sumRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.replace(/ /g, '_'))}`);
+    if (!sumRes.ok) return null;
+    const sum = await sumRes.json();
+    const image = (sum.thumbnail && sum.thumbnail.source) || (sum.originalimage && sum.originalimage.source) || null;
+    return {
+      extract: sum.extract || null,
+      image: image && image.startsWith('https://') ? image : null,
+      wikiUrl: sum.content_urls && sum.content_urls.desktop && sum.content_urls.desktop.page
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
+async function loadSaintCard(task, bodyEl, linkEl, imgEl) {
+  const d = today();
+  const { y, path } = dateUrlParts(d);
+  const data = await fetchDailyData('saint_' + d, `https://cpbjr.github.io/catholic-readings-api/liturgical-calendar/${y}/${path}.json`);
+  if (sessionQueue[sessionIndex] !== task) return;
+  const c = data && data.celebration;
+  if (!c || !c.name) {
+    bodyEl.textContent = "No named saint today — it's a feria in Ordinary Time.";
+    return;
+  }
+
+  let extract = c.description || '';
+  let image = c.image && c.image.startsWith('https://') ? c.image : null;
+  let wikiUrl = null;
+
+  if (c.type !== 'FERIA') {
+    const cacheKey = 'saintWiki_' + d;
+    let wiki = getState()[cacheKey];
+    if (wiki === undefined) {
+      wiki = await fetchWikiSummary(c.name.split(',')[0]);
+      const s = getState(); s[cacheKey] = wiki || null; setState(s);
+    }
+    if (sessionQueue[sessionIndex] !== task) return;
+    if (wiki) {
+      if (!image) image = wiki.image;
+      if (wiki.extract && wiki.extract.length > extract.length) extract = wiki.extract;
+      wikiUrl = wiki.wikiUrl;
+    }
+  }
+
   const lines = [c.name];
   if (c.type && c.type !== 'FERIA') lines.push(c.type.charAt(0) + c.type.slice(1).toLowerCase());
   if (c.quote) lines.push(`"${c.quote}"`);
-  if (c.description) lines.push(c.description);
-  return lines.join('\n\n');
+  if (extract) lines.push(extract);
+  bodyEl.textContent = lines.join('\n\n');
+  bodyEl.classList.remove('session-body-empty');
+
+  if (image) {
+    imgEl.src = image;
+    imgEl.classList.add('show');
+  }
+  if (wikiUrl) {
+    linkEl.href = wikiUrl;
+    linkEl.textContent = 'Read more on Wikipedia →';
+    linkEl.style.display = 'inline-block';
+  }
 }
 
 function loadDynamicCard(task, bodyEl, linkEl) {
@@ -1319,17 +1379,7 @@ function loadDynamicCard(task, bodyEl, linkEl) {
         }
       });
   } else if (task.dynamic === 'saintOfDay') {
-    fetchDailyData('saint_' + d, `https://cpbjr.github.io/catholic-readings-api/liturgical-calendar/${y}/${path}.json`)
-      .then(data => {
-        if (sessionQueue[sessionIndex] !== task) return;
-        const text = formatSaint(data);
-        if (text) {
-          bodyEl.textContent = text;
-          bodyEl.classList.remove('session-body-empty');
-        } else {
-          bodyEl.textContent = "No named saint today — it's a feria in Ordinary Time.";
-        }
-      });
+    loadSaintCard(task, bodyEl, linkEl, document.getElementById('session-image'));
   }
 }
 
@@ -1341,7 +1391,10 @@ function renderSessionCard() {
   document.getElementById('session-title').textContent = task.text;
   const bodyEl = document.getElementById('session-body');
   const linkEl = document.getElementById('session-link');
+  const imgEl = document.getElementById('session-image');
   linkEl.style.display = 'none';
+  imgEl.classList.remove('show');
+  imgEl.removeAttribute('src');
 
   if (task.dynamic) {
     loadDynamicCard(task, bodyEl, linkEl);
