@@ -9,7 +9,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#2563eb">
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon-180.png">
 <title>Daily Prayer — Patty</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -427,6 +427,74 @@ body {
 }
 .edit-active .add-task-row { display: flex; }
 
+/* ── Start Prayer button ── */
+.start-prayer-btn {
+  display: block;
+  width: calc(100% - 40px);
+  margin: 14px 20px 4px;
+  padding: 16px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.start-prayer-btn:active { opacity: 0.85; }
+.start-prayer-btn:disabled { background: var(--bg3); color: var(--text3); cursor: default; }
+
+/* ── Prayer session (full-screen guided flow) ── */
+.prayer-session {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 400;
+  display: none;
+  flex-direction: column;
+}
+.prayer-session.open { display: flex; }
+.session-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: max(14px, env(safe-area-inset-top)) 16px 10px;
+  flex-shrink: 0;
+}
+.session-close {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg3);
+  color: var(--text2);
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.session-progress { font-size: 13px; font-weight: 600; color: var(--text3); }
+.session-scroll { flex: 1; overflow-y: auto; padding: 10px 24px; display: flex; }
+.session-card { margin: auto 0; width: 100%; padding: 8px 0 30px; }
+.session-section {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+.session-title { font-size: 24px; font-weight: 700; line-height: 1.35; color: var(--text); margin-bottom: 16px; }
+.session-body { font-size: 16px; line-height: 1.85; color: var(--text2); white-space: pre-line; }
+.session-body.session-body-empty { font-size: 14px; font-style: italic; color: var(--text3); }
+.session-bottom { padding: 12px 20px max(20px, env(safe-area-inset-bottom)); flex-shrink: 0; }
+.session-complete-btn { margin-top: 0; }
+.session-hint { text-align: center; font-size: 11px; color: var(--text3); margin-top: 10px; }
+
 /* ── Complete banner ── */
 .complete-banner {
   margin: 12px 20px;
@@ -582,6 +650,26 @@ body {
   </div>
 </div>
 
+<!-- Prayer session (full-screen guided flow) -->
+<div class="prayer-session" id="prayer-session">
+  <div class="session-top">
+    <button class="session-close" onclick="closeSession(false)">✕</button>
+    <div class="session-progress" id="session-progress">1 / 23</div>
+    <div style="width:34px"></div>
+  </div>
+  <div class="session-scroll" id="session-scroll">
+    <div class="session-card" id="session-card">
+      <div class="session-section" id="session-section"></div>
+      <div class="session-title" id="session-title"></div>
+      <div class="session-body" id="session-body"></div>
+    </div>
+  </div>
+  <div class="session-bottom">
+    <button class="modal-btn session-complete-btn" onclick="completeSessionCard()">Complete →</button>
+    <div class="session-hint">Swipe left or tap Complete to continue</div>
+  </div>
+</div>
+
 <!-- Today tab -->
 <div id="app-today">
   <div class="header" id="main-header">
@@ -618,6 +706,8 @@ body {
       <div class="progress-sub" id="progress-sub"></div>
     </div>
   </div>
+
+  <button class="start-prayer-btn" id="start-prayer-btn" onclick="startPraySession()">▶ Start Prayer</button>
 
   <div class="complete-banner" id="complete-banner">
     <div class="complete-banner-title">Day complete 🙏</div>
@@ -679,17 +769,17 @@ body {
 
 const DEFAULT_TASKS = [
   { section: "Morning", id: "t1", text: "Phone on airplane mode before prayer" },
-  { section: "Morning", id: "t2", text: "Binding Prayer (Laity)", ref: "Bind every evil in Jesus' name · ask Mary's mantle & holy angels to surround you" },
+  { section: "Morning", id: "t2", text: "Binding Prayer (Laity)", ref: "Bind every evil in Jesus' name · ask Mary's mantle & holy angels to surround you", prayerKey: "binding" },
   { section: "Morning", id: "t3", text: "Cleansing prayer" },
   { section: "Morning", id: "t4", text: "Protection prayer" },
-  { section: "Morning", id: "t5", text: "Pray Sirach 22:27–23:6", ref: "Guard over mouth, mind and heart" },
-  { section: "Morning", id: "t6", text: "Pray Psalm 19:14", ref: "Preserve me from willful sin" },
+  { section: "Morning", id: "t5", text: "Pray Sirach 22:27–23:6", ref: "Guard over mouth, mind and heart", prayerKey: "sirach" },
+  { section: "Morning", id: "t6", text: "Pray Psalm 19:14", ref: "Preserve me from willful sin", prayerKey: "psalm19" },
   { section: "Morning", id: "t7", text: "Ask the 6 wounds of Christ to cover all senses" },
   { section: "Personal Prayer (30 min)", id: "t8", text: "Read the Mass readings of the day", ref: "Holy Spirit, give me what I need today" },
   { section: "Personal Prayer (30 min)", id: "t9", text: "Sit in silence with the Word for 10+ minutes" },
   { section: "Personal Prayer (30 min)", id: "t10", text: "Journal — write what you hear or feel stirred by" },
-  { section: "Personal Prayer (30 min)", id: "t11", text: "Pray ACTS", ref: "Adoration · Contrition · Thanksgiving · Supplication" },
-  { section: "Personal Prayer (30 min)", id: "t12", text: "Pray Psalm 32:8" },
+  { section: "Personal Prayer (30 min)", id: "t11", text: "Pray ACTS", ref: "Adoration · Contrition · Thanksgiving · Supplication", prayerKey: "acts" },
+  { section: "Personal Prayer (30 min)", id: "t12", text: "Pray Psalm 32:8", prayerKey: "psalm32" },
   { section: "During the Day", id: "t13", text: "Saint of the day — learn from them" },
   { section: "During the Day", id: "t14", text: "Stay on the offensive — be vigilant, not passive" },
   { section: "During the Day", id: "t15", text: "Praise God regardless of how you feel" },
@@ -717,11 +807,11 @@ const BADGES = [
 ];
 
 const PRAYERS = [
-  { title: "Binding Prayer (Laity)", ref: "Protection", body: `In the Holy Name of Jesus, and through the power of His precious blood, I ask Almighty God to bind each and every demon coming against me (or my family) or trying to affect me (us) in any way. In Jesus' name may they be bound and cast out. I ask God to render them all deaf, dumb, blind and powerless. In Jesus name, may He make them incapable of tempting, tormenting, afflicting or harming me (us). I ask the Blessed Virgin Mary to spread her mantle of protection over me (us). I ask the Holy Angels to surround me (us), and with the sword of Truth, keep out the evil spirits. I ask the Blood of Jesus to wash over me (us) and protect me (us). May it wash over this place, making it a sacred space, free of all evil. (SMC)` },
-  { title: "Sirach 22:27–23:6", ref: "Daily Scripture", body: `Who will set a guard over my mouth, and an effective seal upon my lips, that I may not fall because of them, and my tongue may not destroy me?\n\nO Lord, Father and Master of my life, do not abandon me to their designs, and do not let me fall because of them! Who will set whips over my thoughts, and the discipline of wisdom over my mind, that they may not spare me in my errors, and that it may not pass over my sins?\n\nOtherwise my mistakes may be multiplied, and my sins may abound, and I may fall before my adversaries, and my enemy may rejoice over me. O Lord, Father and God of my life, do not give me haughty eyes, and remove evil desire from me. Let neither gluttony nor lust overcome me, and do not surrender me to a shameless soul.` },
-  { title: "Psalm 19:14", ref: "Daily Scripture", body: `Let the words of my mouth and the meditation of my heart be acceptable in your sight, O Lord, my rock and my redeemer.\n\n— Preserve me from willful sin.` },
-  { title: "Psalm 32:8", ref: "Daily Scripture", body: `I will instruct you and teach you in the way you should go; I will counsel you with my eye upon you.` },
-  { title: "ACTS Prayer", ref: "Method", body: `A — Adoration\nStart with praise. Tell God who He is, not what you want. Just worship.\n\nC — Contrition\nBring your sins before Him honestly. Ask for forgiveness. Sit with the weight of it. This is where confession is born.\n\nT — Thanksgiving\nThank Him for specific things — today, this week, your life.\n\nS — Supplication\nNow you can ask. For yourself, for others, for the things on your heart.` },
+  { key: "binding", title: "Binding Prayer (Laity)", ref: "Protection", body: `In the Holy Name of Jesus, and through the power of His precious blood, I ask Almighty God to bind each and every demon coming against me (or my family) or trying to affect me (us) in any way. In Jesus' name may they be bound and cast out. I ask God to render them all deaf, dumb, blind and powerless. In Jesus name, may He make them incapable of tempting, tormenting, afflicting or harming me (us). I ask the Blessed Virgin Mary to spread her mantle of protection over me (us). I ask the Holy Angels to surround me (us), and with the sword of Truth, keep out the evil spirits. I ask the Blood of Jesus to wash over me (us) and protect me (us). May it wash over this place, making it a sacred space, free of all evil. (SMC)` },
+  { key: "sirach", title: "Sirach 22:27–23:6", ref: "Daily Scripture", body: `Who will set a guard over my mouth, and an effective seal upon my lips, that I may not fall because of them, and my tongue may not destroy me?\n\nO Lord, Father and Master of my life, do not abandon me to their designs, and do not let me fall because of them! Who will set whips over my thoughts, and the discipline of wisdom over my mind, that they may not spare me in my errors, and that it may not pass over my sins?\n\nOtherwise my mistakes may be multiplied, and my sins may abound, and I may fall before my adversaries, and my enemy may rejoice over me. O Lord, Father and God of my life, do not give me haughty eyes, and remove evil desire from me. Let neither gluttony nor lust overcome me, and do not surrender me to a shameless soul.` },
+  { key: "psalm19", title: "Psalm 19:14", ref: "Daily Scripture", body: `Let the words of my mouth and the meditation of my heart be acceptable in your sight, O Lord, my rock and my redeemer.\n\n— Preserve me from willful sin.` },
+  { key: "psalm32", title: "Psalm 32:8", ref: "Daily Scripture", body: `I will instruct you and teach you in the way you should go; I will counsel you with my eye upon you.` },
+  { key: "acts", title: "ACTS Prayer", ref: "Method", body: `A — Adoration\nStart with praise. Tell God who He is, not what you want. Just worship.\n\nC — Contrition\nBring your sins before Him honestly. Ask for forgiveness. Sit with the weight of it. This is where confession is born.\n\nT — Thanksgiving\nThank Him for specific things — today, this week, your life.\n\nS — Supplication\nNow you can ask. For yourself, for others, for the things on your heart.` },
 ];
 
 const MSGS = [
@@ -873,6 +963,19 @@ function updateProgress() {
   document.getElementById('progress-msg').textContent = MSGS[idx];
   document.getElementById('complete-banner').classList.toggle('show', done === total && total > 0);
   updateStreakDisplay();
+  updateStartPrayerBtn(done, total);
+}
+
+function updateStartPrayerBtn(done, total) {
+  const btn = document.getElementById('start-prayer-btn');
+  if (total === 0) { btn.disabled = true; btn.textContent = 'No tasks yet'; return; }
+  if (done >= total) {
+    btn.disabled = true;
+    btn.textContent = 'All done for today 🙏';
+  } else {
+    btn.disabled = false;
+    btn.textContent = done === 0 ? '▶ Start Prayer' : `▶ Continue Prayer (${total - done} left)`;
+  }
 }
 
 function updateStreakDisplay() {
@@ -1038,6 +1141,100 @@ function buildChecklist() {
 function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
+// ── Guided prayer session (full-screen card flow) ───────────────────────────
+
+let sessionQueue = [];
+let sessionIndex = 0;
+let sessionTransitioning = false;
+
+function startPraySession() {
+  const taskList = getTaskList();
+  const checked = getTodayChecked();
+  sessionQueue = taskList.filter(t => !checked[t.id]);
+  if (sessionQueue.length === 0) { showToast('All done for today 🙏'); return; }
+  sessionIndex = 0;
+  document.getElementById('prayer-session').classList.add('open');
+  renderSessionCard();
+}
+
+function findPrayerBody(task) {
+  if (!task.prayerKey) return null;
+  const p = PRAYERS.find(pr => pr.key === task.prayerKey);
+  return p ? p.body : null;
+}
+
+function renderSessionCard() {
+  const task = sessionQueue[sessionIndex];
+  const body = findPrayerBody(task);
+  document.getElementById('session-progress').textContent = `${sessionIndex + 1} / ${sessionQueue.length}`;
+  document.getElementById('session-section').textContent = task.section;
+  document.getElementById('session-title').textContent = task.text;
+  const bodyEl = document.getElementById('session-body');
+  if (body) {
+    bodyEl.textContent = body;
+    bodyEl.classList.remove('session-body-empty');
+  } else if (task.ref) {
+    bodyEl.textContent = task.ref;
+    bodyEl.classList.add('session-body-empty');
+  } else {
+    bodyEl.textContent = '';
+    bodyEl.classList.add('session-body-empty');
+  }
+  document.getElementById('session-scroll').scrollTop = 0;
+
+  const card = document.getElementById('session-card');
+  card.style.transition = 'none';
+  card.style.transform = 'translateX(28px)';
+  card.style.opacity = '0';
+  requestAnimationFrame(() => {
+    card.style.transition = 'transform 0.28s cubic-bezier(0.34,1.56,0.64,1), opacity 0.28s ease';
+    card.style.transform = 'translateX(0)';
+    card.style.opacity = '1';
+  });
+}
+
+function completeSessionCard() {
+  if (sessionTransitioning) return;
+  sessionTransitioning = true;
+  const task = sessionQueue[sessionIndex];
+  setTaskChecked(task.id, true);
+  const el = document.getElementById('task-' + task.id);
+  if (el) el.classList.add('done');
+
+  const card = document.getElementById('session-card');
+  card.style.transition = 'transform 0.2s ease, opacity 0.2s ease';
+  card.style.transform = 'translateX(-28px)';
+  card.style.opacity = '0';
+  setTimeout(() => {
+    sessionIndex++;
+    sessionTransitioning = false;
+    if (sessionIndex >= sessionQueue.length) {
+      closeSession(true);
+    } else {
+      renderSessionCard();
+    }
+  }, 200);
+}
+
+function closeSession(completedAll) {
+  document.getElementById('prayer-session').classList.remove('open');
+  buildChecklist();
+  if (completedAll) showToast('Prayer time complete 🙏');
+}
+
+let sessionTouchStartX = null;
+document.addEventListener('touchstart', e => {
+  if (!document.getElementById('prayer-session').classList.contains('open')) return;
+  sessionTouchStartX = e.touches[0].clientX;
+}, { passive: true });
+document.addEventListener('touchend', e => {
+  if (sessionTouchStartX === null) return;
+  const isOpen = document.getElementById('prayer-session').classList.contains('open');
+  const dx = e.changedTouches[0].clientX - sessionTouchStartX;
+  sessionTouchStartX = null;
+  if (isOpen && dx < -60) completeSessionCard();
+}, { passive: true });
 
 // ── Stats ─────────────────────────────────────────────────────────────────
 
