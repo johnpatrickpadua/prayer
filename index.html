@@ -427,24 +427,33 @@ body {
 }
 .edit-active .add-task-row { display: flex; }
 
-/* ── Start Prayer button ── */
-.start-prayer-btn {
-  display: block;
+/* ── Section cards (tap into a scoped guided flow) ── */
+.section-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
   width: calc(100% - 40px);
-  margin: 14px 20px 4px;
+  margin: 12px 20px;
   padding: 16px;
-  background: var(--accent);
-  color: white;
-  border: none;
-  border-radius: 14px;
-  font-size: 16px;
-  font-weight: 700;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
   font-family: var(--font);
+  text-align: left;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: background 0.1s, border-color 0.15s;
 }
-.start-prayer-btn:active { opacity: 0.85; }
-.start-prayer-btn:disabled { background: var(--bg3); color: var(--text3); cursor: default; }
+.section-card:active { background: var(--bg2); }
+.section-card.complete { border-color: var(--green-border); background: var(--green-bg); }
+.section-card-icon { font-size: 26px; flex-shrink: 0; width: 34px; text-align: center; }
+.section-card-body { flex: 1; min-width: 0; }
+.section-card-name { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+.section-card-progress { font-size: 12px; color: var(--text3); margin-bottom: 8px; }
+.section-card.complete .section-card-progress { color: var(--green); font-weight: 600; }
+.section-card-bar { height: 5px; background: var(--bg3); border-radius: 100px; overflow: hidden; }
+.section-card-bar-fill { height: 100%; background: var(--accent); border-radius: 100px; transition: width 0.3s ease; }
+.section-card.complete .section-card-bar-fill { background: var(--green); }
+.section-card-chevron { font-size: 20px; color: var(--text3); flex-shrink: 0; }
 
 /* ── Prayer session (full-screen guided flow) ── */
 .prayer-session {
@@ -524,6 +533,13 @@ body {
   min-width: 34px;
 }
 .session-timer.paused { color: var(--text3); background: var(--bg3); }
+.session-timer.finished { color: var(--green); background: var(--green-bg); }
+
+.reading-block { margin-bottom: 22px; }
+.reading-block:last-child { margin-bottom: 0; }
+.reading-label { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
+.reading-citation { font-weight: 500; color: var(--text3); text-transform: none; letter-spacing: normal; }
+.reading-text { font-size: 16px; line-height: 1.85; color: var(--text2); }
 
 /* ── Journal (diary) ── */
 .journal-fab {
@@ -798,8 +814,6 @@ body {
     </div>
   </div>
 
-  <button class="start-prayer-btn" id="start-prayer-btn" onclick="startPraySession()">▶ Start Prayer</button>
-
   <div class="complete-banner" id="complete-banner">
     <div class="complete-banner-title">Day complete 🙏</div>
     <div class="complete-banner-sub">The Lord waited, and you showed up. Well done.</div>
@@ -859,30 +873,37 @@ body {
 // ── Default task list ─────────────────────────────────────────────────────
 
 const DEFAULT_TASKS = [
-  { section: "Morning", id: "t1", text: "Phone on airplane mode before prayer" },
-  { section: "Morning", id: "t2", text: "Binding Prayer (Laity)", ref: "Bind every evil in Jesus' name · ask Mary's mantle & holy angels to surround you", prayerKey: "binding" },
-  { section: "Morning", id: "t3", text: "Cleansing prayer" },
-  { section: "Morning", id: "t4", text: "Protection prayer" },
-  { section: "Morning", id: "t5", text: "Pray Sirach 22:27–23:6", ref: "Guard over mouth, mind and heart", prayerKey: "sirach" },
-  { section: "Morning", id: "t6", text: "Pray Psalm 19:14", ref: "Preserve me from willful sin", prayerKey: "psalm19" },
-  { section: "Morning", id: "t7", text: "Ask the 6 wounds of Christ to cover all senses", prayerKey: "wounds" },
-  { section: "Personal Prayer (30 min)", id: "t8", text: "Read the Mass readings of the day", ref: "Holy Spirit, give me what I need today", dynamic: "massReadings" },
-  { section: "Personal Prayer (30 min)", id: "t9", text: "Sit in silence with the Word for 10+ minutes", journalPrompt: true },
-  { section: "Personal Prayer (30 min)", id: "t10", text: "Journal — write what you hear or feel stirred by", journalPrompt: true },
-  { section: "Personal Prayer (30 min)", id: "t11", text: "Pray ACTS", ref: "Adoration · Contrition · Thanksgiving · Supplication", prayerKey: "acts" },
-  { section: "Personal Prayer (30 min)", id: "t12", text: "Pray Psalm 32:8", prayerKey: "psalm32" },
+  { section: "Morning Prayer", id: "t1", text: "Phone on airplane mode before prayer" },
+  { section: "Morning Prayer", id: "t2", text: "Binding Prayer (Laity)", ref: "Bind every evil in Jesus' name · ask Mary's mantle & holy angels to surround you", prayerKey: "binding" },
+  { section: "Morning Prayer", id: "t3", text: "Cleansing prayer" },
+  { section: "Morning Prayer", id: "t4", text: "Protection prayer" },
+  { section: "Morning Prayer", id: "t5", text: "Pray Sirach 22:27–23:6", ref: "Guard over mouth, mind and heart", prayerKey: "sirach" },
+  { section: "Morning Prayer", id: "t6", text: "Pray Psalm 19:14", ref: "Preserve me from willful sin", prayerKey: "psalm19" },
+  { section: "Morning Prayer", id: "t7", text: "Ask the 6 wounds of Christ to cover all senses", prayerKey: "wounds" },
+  { section: "Morning Prayer", id: "t8", text: "Read the Mass readings of the day", ref: "Holy Spirit, give me what I need today", dynamic: "massReadings" },
+  { section: "Morning Prayer", id: "t9", text: "Sit in silence with the Word for 10+ minutes", journalPrompt: true, durationSeconds: 600 },
+  { section: "Morning Prayer", id: "t10", text: "Journal — write what you hear or feel stirred by", journalPrompt: true },
+  { section: "Morning Prayer", id: "t11", text: "Pray ACTS", ref: "Adoration · Contrition · Thanksgiving · Supplication", prayerKey: "acts" },
+  { section: "Morning Prayer", id: "t12", text: "Pray Psalm 32:8", prayerKey: "psalm32" },
   { section: "During the Day", id: "t13", text: "Saint of the day — learn from them", dynamic: "saintOfDay" },
   { section: "During the Day", id: "t14", text: "Stay on the offensive — be vigilant, not passive" },
   { section: "During the Day", id: "t15", text: "Praise God regardless of how you feel" },
   { section: "During the Day", id: "t16", text: "Note any moment where God seemed to speak" },
-  { section: "Adoration / Evening", id: "t17", text: "Sit before the Blessed Sacrament" },
-  { section: "Adoration / Evening", id: "t18", text: "Listen before adoration — don't rush in with requests" },
-  { section: "Adoration / Evening", id: "t19", text: "Sit even if distracted — keep returning" },
-  { section: "Adoration / Evening", id: "t20", text: "Ask: Is there anything You want to free me from, Lord?" },
+  { section: "Adoration", id: "t17", text: "Sit before the Blessed Sacrament" },
+  { section: "Adoration", id: "t18", text: "Listen before adoration — don't rush in with requests" },
+  { section: "Adoration", id: "t19", text: "Sit even if distracted — keep returning" },
+  { section: "Adoration", id: "t20", text: "Ask: Is there anything You want to free me from, Lord?" },
   { section: "Night", id: "t21", text: "Set a reasonable sleep time and keep it" },
   { section: "Night", id: "t22", text: "Phone off / out of bedroom" },
   { section: "Night", id: "t23", text: "Brief examen — where was God today?" },
 ];
+
+const SECTION_ICONS = {
+  "Morning Prayer": "🌅",
+  "During the Day": "☀️",
+  "Adoration": "🕯️",
+  "Night": "🌙",
+};
 
 const BADGES = [
   { id: 'day1',    icon: '🕯️', name: 'First Light',  desc: 'Day 1 done',      check: s => s.streakTotal >= 1   },
@@ -1055,19 +1076,7 @@ function updateProgress() {
   document.getElementById('progress-msg').textContent = MSGS[idx];
   document.getElementById('complete-banner').classList.toggle('show', done === total && total > 0);
   updateStreakDisplay();
-  updateStartPrayerBtn(done, total);
-}
-
-function updateStartPrayerBtn(done, total) {
-  const btn = document.getElementById('start-prayer-btn');
-  if (total === 0) { btn.disabled = true; btn.textContent = 'No tasks yet'; return; }
-  if (done >= total) {
-    btn.disabled = true;
-    btn.textContent = 'All done for today 🙏';
-  } else {
-    btn.disabled = false;
-    btn.textContent = done === 0 ? '▶ Start Prayer' : `▶ Continue Prayer (${total - done} left)`;
-  }
+  if (!editMode) buildSectionCards();
 }
 
 function updateStreakDisplay() {
@@ -1123,8 +1132,7 @@ function toggleEditMode() {
   btn.textContent = editMode ? 'Done' : '✏️';
   btn.style.fontStyle = editMode ? 'normal' : '';
   header.classList.toggle('edit-active', editMode);
-  document.getElementById('checklist-content').classList.toggle('edit-active', editMode);
-  if (!editMode) buildChecklist(); // rebuild to ensure clean state
+  buildChecklist(); // swap between section cards and the flat edit list
 }
 
 function openAddTask(section) {
@@ -1193,6 +1201,11 @@ function deleteTaskFromModal() {
 // ── Build checklist ───────────────────────────────────────────────────────
 
 function buildChecklist() {
+  if (editMode) buildEditChecklist();
+  updateProgress(); // triggers buildSectionCards() when not in edit mode
+}
+
+function buildEditChecklist() {
   const taskList = getTaskList();
   const checked = getTodayChecked();
   const sections = [...new Set(taskList.map(t => t.section))];
@@ -1224,10 +1237,34 @@ function buildChecklist() {
     html += '</div>';
   });
   document.getElementById('checklist-content').innerHTML = html;
-  if (editMode) {
-    document.getElementById('checklist-content').classList.add('edit-active');
-  }
-  updateProgress();
+  document.getElementById('checklist-content').classList.add('edit-active');
+}
+
+function buildSectionCards() {
+  const taskList = getTaskList();
+  const checked = getTodayChecked();
+  const container = document.getElementById('checklist-content');
+  container.classList.remove('edit-active');
+  const sections = [...new Set(taskList.map(t => t.section))];
+  let html = '';
+  sections.forEach(sec => {
+    const tasks = taskList.filter(t => t.section === sec);
+    const done = tasks.filter(t => checked[t.id]).length;
+    const total = tasks.length;
+    const complete = total > 0 && done === total;
+    const pct = total ? Math.round((done / total) * 100) : 0;
+    const icon = SECTION_ICONS[sec] || '🙏';
+    html += `<button class="section-card ${complete ? 'complete' : ''}" onclick="startPraySession('${escHtml(sec)}')">
+      <div class="section-card-icon">${complete ? '✅' : icon}</div>
+      <div class="section-card-body">
+        <div class="section-card-name">${escHtml(sec)}</div>
+        <div class="section-card-progress">${complete ? 'Complete' : `${done}/${total} done`}</div>
+        <div class="section-card-bar"><div class="section-card-bar-fill" style="width:${pct}%"></div></div>
+      </div>
+      <span class="section-card-chevron">›</span>
+    </button>`;
+  });
+  container.innerHTML = html;
 }
 
 function escHtml(s) {
@@ -1239,12 +1276,18 @@ function escHtml(s) {
 let sessionQueue = [];
 let sessionIndex = 0;
 let sessionTransitioning = false;
+let sessionSectionFilter = null;
 
-function startPraySession() {
+function startPraySession(sectionFilter) {
   const taskList = getTaskList();
   const checked = getTodayChecked();
-  sessionQueue = taskList.filter(t => !checked[t.id]);
-  if (sessionQueue.length === 0) { showToast('All done for today 🙏'); return; }
+  let tasks = sectionFilter ? taskList.filter(t => t.section === sectionFilter) : taskList;
+  sessionQueue = tasks.filter(t => !checked[t.id]);
+  if (sessionQueue.length === 0) {
+    showToast(sectionFilter ? `${sectionFilter} already complete ✅` : 'All done for today 🙏');
+    return;
+  }
+  sessionSectionFilter = sectionFilter || null;
   sessionIndex = 0;
   document.getElementById('prayer-session').classList.add('open');
   renderSessionCard();
@@ -1277,13 +1320,72 @@ function dateUrlParts(d) {
   return { y, path: `${m}-${day}` };
 }
 
-function formatMassReadings(data) {
-  if (!data || !data.readings) return null;
-  const r = data.readings;
-  const lines = [`First Reading: ${r.firstReading}`, `Responsorial Psalm: ${r.psalm}`];
-  if (r.secondReading) lines.push(`Second Reading: ${r.secondReading}`);
-  lines.push(`Gospel: ${r.gospel}`);
-  return lines.join('\n\n');
+function estimateReadingSeconds(text) {
+  if (!text) return null;
+  const words = text.trim().split(/\s+/).filter(Boolean).length;
+  const wordsPerMinute = 130; // slow, reflective reading pace
+  return Math.max(20, Math.round(words / wordsPerMinute * 60));
+}
+
+async function fetchPassageText(reference) {
+  if (!reference) return null;
+  try {
+    const res = await fetch(`https://bible-api.com/${encodeURIComponent(reference)}?translation=web`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.text ? data.text.trim().replace(/\n{3,}/g, '\n\n') : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function loadMassReadingsCard(task, bodyEl, linkEl) {
+  const d = today();
+  const { y, path } = dateUrlParts(d);
+  const data = await fetchDailyData('readings_' + d, `https://cpbjr.github.io/catholic-readings-api/readings/${y}/${path}.json`);
+  if (sessionQueue[sessionIndex] !== task) return;
+  const r = data && data.readings;
+  if (!r) {
+    bodyEl.textContent = "Couldn't load today's readings — check your connection.";
+    startCardTimer(null);
+    return;
+  }
+
+  const textCacheKey = 'readingsText_' + d;
+  let texts = getState()[textCacheKey];
+  if (!texts) {
+    const [first, psalm, second, gospel] = await Promise.all([
+      fetchPassageText(r.firstReading),
+      fetchPassageText(r.psalm),
+      r.secondReading ? fetchPassageText(r.secondReading) : Promise.resolve(null),
+      fetchPassageText(r.gospel)
+    ]);
+    texts = { first, psalm, second, gospel };
+    const s = getState(); s[textCacheKey] = texts; setState(s);
+  }
+  if (sessionQueue[sessionIndex] !== task) return;
+
+  const blocks = [
+    { label: 'First Reading', citation: r.firstReading, text: texts.first },
+    { label: 'Responsorial Psalm', citation: r.psalm, text: texts.psalm },
+  ];
+  if (r.secondReading) blocks.push({ label: 'Second Reading', citation: r.secondReading, text: texts.second });
+  blocks.push({ label: 'Gospel', citation: r.gospel, text: texts.gospel });
+
+  bodyEl.innerHTML = blocks.map(b => `<div class="reading-block">
+    <div class="reading-label">${escHtml(b.label)} <span class="reading-citation">${escHtml(b.citation || '')}</span></div>
+    <div class="reading-text">${escHtml(b.text || '(text unavailable — try the link below)').replace(/\n/g, '<br>')}</div>
+  </div>`).join('');
+  bodyEl.classList.remove('session-body-empty');
+
+  if (data.usccbLink) {
+    linkEl.href = data.usccbLink;
+    linkEl.textContent = 'Compare official translation at USCCB →';
+    linkEl.style.display = 'inline-block';
+  }
+
+  const fullText = blocks.map(b => b.text || '').join(' ');
+  startCardTimer(estimateReadingSeconds(fullText));
 }
 
 async function fetchWikiSummary(name) {
@@ -1314,6 +1416,7 @@ async function loadSaintCard(task, bodyEl, linkEl, imgEl) {
   const c = data && data.celebration;
   if (!c || !c.name) {
     bodyEl.textContent = "No named saint today — it's a feria in Ordinary Time.";
+    startCardTimer(null);
     return;
   }
 
@@ -1352,32 +1455,16 @@ async function loadSaintCard(task, bodyEl, linkEl, imgEl) {
     linkEl.textContent = 'Read more on Wikipedia →';
     linkEl.style.display = 'inline-block';
   }
+  startCardTimer(estimateReadingSeconds(lines.join(' ')));
 }
 
 function loadDynamicCard(task, bodyEl, linkEl) {
-  const d = today();
-  const { y, path } = dateUrlParts(d);
   bodyEl.textContent = 'Loading…';
   bodyEl.classList.add('session-body-empty');
   linkEl.style.display = 'none';
 
   if (task.dynamic === 'massReadings') {
-    fetchDailyData('readings_' + d, `https://cpbjr.github.io/catholic-readings-api/readings/${y}/${path}.json`)
-      .then(data => {
-        if (sessionQueue[sessionIndex] !== task) return;
-        const text = formatMassReadings(data);
-        if (text) {
-          bodyEl.textContent = text;
-          bodyEl.classList.remove('session-body-empty');
-        } else {
-          bodyEl.textContent = "Couldn't load today's readings — check your connection.";
-        }
-        if (data && data.usccbLink) {
-          linkEl.href = data.usccbLink;
-          linkEl.textContent = 'Read full text at USCCB →';
-          linkEl.style.display = 'inline-block';
-        }
-      });
+    loadMassReadingsCard(task, bodyEl, linkEl);
   } else if (task.dynamic === 'saintOfDay') {
     loadSaintCard(task, bodyEl, linkEl, document.getElementById('session-image'));
   }
@@ -1395,23 +1482,26 @@ function renderSessionCard() {
   linkEl.style.display = 'none';
   imgEl.classList.remove('show');
   imgEl.removeAttribute('src');
+  resetCardTimer();
 
   if (task.dynamic) {
-    loadDynamicCard(task, bodyEl, linkEl);
+    loadDynamicCard(task, bodyEl, linkEl); // starts its own timer once content loads
   } else if (body) {
     bodyEl.textContent = body;
     bodyEl.classList.remove('session-body-empty');
+    startCardTimer(estimateReadingSeconds(body));
   } else if (task.ref) {
     bodyEl.textContent = task.ref;
     bodyEl.classList.add('session-body-empty');
+    startCardTimer(task.durationSeconds || null);
   } else {
     bodyEl.textContent = '';
     bodyEl.classList.add('session-body-empty');
+    startCardTimer(task.durationSeconds || null);
   }
 
   document.getElementById('session-journal-btn').classList.toggle('show', !!task.journalPrompt);
   document.getElementById('session-scroll').scrollTop = 0;
-  startCardTimer();
 
   const card = document.getElementById('session-card');
   card.style.transition = 'none';
@@ -1424,29 +1514,58 @@ function renderSessionCard() {
   });
 }
 
-// ── Per-card timer ───────────────────────────────────────────────────────
+// ── Per-card timer (counts down when a duration is known, else counts up) ──
 
 let cardTimerInterval = null;
+let cardTimerMode = 'stopwatch';
 let cardTimerSeconds = 0;
+let cardTimerRemaining = 0;
 let cardTimerPaused = false;
 
-function startCardTimer() {
+function resetCardTimer() {
   clearInterval(cardTimerInterval);
-  cardTimerSeconds = 0;
-  cardTimerPaused = false;
+  cardTimerInterval = null;
   const el = document.getElementById('session-timer');
-  el.classList.remove('paused');
-  el.textContent = '00:00';
+  el.classList.remove('paused', 'finished');
+  el.textContent = '--:--';
+}
+
+function startCardTimer(targetSeconds) {
+  clearInterval(cardTimerInterval);
+  cardTimerPaused = false;
+  cardTimerMode = targetSeconds ? 'countdown' : 'stopwatch';
+  cardTimerRemaining = targetSeconds || 0;
+  cardTimerSeconds = 0;
+  const el = document.getElementById('session-timer');
+  el.classList.remove('paused', 'finished');
+  updateCardTimerDisplay();
   cardTimerInterval = setInterval(() => {
     if (cardTimerPaused) return;
-    cardTimerSeconds++;
-    const m = String(Math.floor(cardTimerSeconds / 60)).padStart(2, '0');
-    const s = String(cardTimerSeconds % 60).padStart(2, '0');
-    el.textContent = `${m}:${s}`;
+    if (cardTimerMode === 'countdown') {
+      cardTimerRemaining--;
+      if (cardTimerRemaining <= 0) {
+        cardTimerRemaining = 0;
+        updateCardTimerDisplay();
+        document.getElementById('session-timer').classList.add('finished');
+        stopCardTimer();
+        return;
+      }
+    } else {
+      cardTimerSeconds++;
+    }
+    updateCardTimerDisplay();
   }, 1000);
 }
 
+function updateCardTimerDisplay() {
+  const secs = cardTimerMode === 'countdown' ? cardTimerRemaining : cardTimerSeconds;
+  const m = String(Math.floor(secs / 60)).padStart(2, '0');
+  const s = String(secs % 60).padStart(2, '0');
+  document.getElementById('session-timer').textContent = `${m}:${s}`;
+}
+
 function toggleCardTimer() {
+  if (!cardTimerInterval) return;
   cardTimerPaused = !cardTimerPaused;
   document.getElementById('session-timer').classList.toggle('paused', cardTimerPaused);
 }
@@ -1483,7 +1602,11 @@ function closeSession(completedAll) {
   stopCardTimer();
   document.getElementById('prayer-session').classList.remove('open');
   buildChecklist();
-  if (completedAll) showToast('Prayer time complete 🙏');
+  if (completedAll) {
+    const checked = getTodayChecked();
+    const dayDone = getTaskList().every(t => checked[t.id]);
+    showToast(dayDone ? 'Prayer time complete 🙏' : `${sessionSectionFilter} complete 🙏`);
+  }
 }
 
 // ── Journal (diary, accessible anytime via the corner button) ──────────────
