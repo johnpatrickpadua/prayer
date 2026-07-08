@@ -570,6 +570,28 @@ body {
 }
 .journal-overlay.open { display: flex; }
 .journal-scroll { flex: 1; overflow-y: auto; padding: 4px 20px max(24px, env(safe-area-inset-bottom)); }
+.journal-readings-toggle {
+  display: block;
+  width: 100%;
+  margin-bottom: 4px;
+  padding: 12px 14px;
+  background: var(--accent-light);
+  color: var(--accent);
+  border: 1px solid var(--accent-mid);
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font);
+  text-align: left;
+  cursor: pointer;
+}
+.journal-readings-panel { display: none; padding: 14px 4px 8px; }
+.journal-readings-panel.open { display: block; }
+.journal-readings-panel .reading-block { margin-bottom: 18px; }
+.journal-readings-panel .reading-label { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
+.journal-readings-panel .reading-citation { font-weight: 500; color: var(--text3); text-transform: none; letter-spacing: normal; }
+.journal-readings-panel .reading-text { font-size: 14px; line-height: 1.7; color: var(--text2); }
+.journal-readings-panel .reading-link { display: inline-block; margin-top: 4px; font-size: 13px; font-weight: 600; color: var(--accent); text-decoration: none; }
 .journal-entry { margin-bottom: 20px; }
 .journal-entry-date { font-size: 12px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
 .journal-entry-text {
@@ -776,7 +798,11 @@ body {
     <div class="journal-title">📔 Journal</div>
     <button class="session-close" id="journal-close" onclick="closeJournal()">✕</button>
   </div>
-  <div class="journal-scroll" id="journal-list"></div>
+  <div class="journal-scroll">
+    <button class="journal-readings-toggle" id="journal-readings-toggle" onclick="toggleJournalReadings()">📖 View today's readings</button>
+    <div class="journal-readings-panel" id="journal-readings-panel"></div>
+    <div id="journal-list"></div>
+  </div>
 </div>
 
 <!-- Today tab -->
@@ -1482,17 +1508,12 @@ async function fetchPassageText(reference) {
   }
 }
 
-async function loadMassReadingsCard(task, bodyEl, linkEl) {
+async function fetchTodaysReadings() {
   const d = today();
   const { y, path } = dateUrlParts(d);
   const data = await fetchDailyData('readings_' + d, `https://cpbjr.github.io/catholic-readings-api/readings/${y}/${path}.json`);
-  if (sessionQueue[sessionIndex] !== task) return;
   const r = data && data.readings;
-  if (!r) {
-    bodyEl.textContent = "Couldn't load today's readings — check your connection.";
-    startCardTimer(null);
-    return;
-  }
+  if (!r) return null;
 
   const textCacheKey = 'readingsText_' + d;
   let texts = getState()[textCacheKey];
@@ -1506,7 +1527,6 @@ async function loadMassReadingsCard(task, bodyEl, linkEl) {
     texts = { first, psalm, second, gospel };
     const s = getState(); s[textCacheKey] = texts; setState(s);
   }
-  if (sessionQueue[sessionIndex] !== task) return;
 
   const blocks = [
     { label: 'First Reading', citation: r.firstReading, text: texts.first },
@@ -1515,20 +1535,33 @@ async function loadMassReadingsCard(task, bodyEl, linkEl) {
   if (r.secondReading) blocks.push({ label: 'Second Reading', citation: r.secondReading, text: texts.second });
   blocks.push({ label: 'Gospel', citation: r.gospel, text: texts.gospel });
 
-  bodyEl.innerHTML = blocks.map(b => `<div class="reading-block">
+  const html = blocks.map(b => `<div class="reading-block">
     <div class="reading-label">${escHtml(b.label)} <span class="reading-citation">${escHtml(b.citation || '')}</span></div>
     <div class="reading-text">${escHtml(b.text || '(text unavailable — try the link below)').replace(/\n/g, '<br>')}</div>
   </div>`).join('');
+
+  return { html, usccbLink: data.usccbLink, fullText: blocks.map(b => b.text || '').join(' ') };
+}
+
+async function loadMassReadingsCard(task, bodyEl, linkEl) {
+  const readings = await fetchTodaysReadings();
+  if (sessionQueue[sessionIndex] !== task) return;
+  if (!readings) {
+    bodyEl.textContent = "Couldn't load today's readings — check your connection.";
+    startCardTimer(null);
+    return;
+  }
+
+  bodyEl.innerHTML = readings.html;
   bodyEl.classList.remove('session-body-empty');
 
-  if (data.usccbLink) {
-    linkEl.href = data.usccbLink;
+  if (readings.usccbLink) {
+    linkEl.href = readings.usccbLink;
     linkEl.textContent = 'Compare official translation at USCCB →';
     linkEl.style.display = 'inline-block';
   }
 
-  const fullText = blocks.map(b => b.text || '').join(' ');
-  startCardTimer(estimateReadingSeconds(fullText));
+  startCardTimer(estimateReadingSeconds(readings.fullText));
 }
 
 async function fetchWikiSummary(name) {
@@ -1765,11 +1798,34 @@ let journalSaveTimers = {};
 
 function openJournal() {
   buildJournal();
+  document.getElementById('journal-readings-panel').classList.remove('open');
+  document.getElementById('journal-readings-toggle').textContent = "📖 View today's readings";
   document.getElementById('journal-overlay').classList.add('open');
 }
 
 function closeJournal() {
   document.getElementById('journal-overlay').classList.remove('open');
+}
+
+async function toggleJournalReadings() {
+  const panel = document.getElementById('journal-readings-panel');
+  const btn = document.getElementById('journal-readings-toggle');
+  if (panel.classList.contains('open')) {
+    panel.classList.remove('open');
+    btn.textContent = "📖 View today's readings";
+    return;
+  }
+  btn.textContent = 'Loading…';
+  const readings = await fetchTodaysReadings();
+  if (!readings) {
+    panel.innerHTML = `<div class="reading-text">Couldn't load today's readings — check your connection.</div>`;
+  } else {
+    panel.innerHTML = readings.html + (readings.usccbLink
+      ? `<a class="reading-link" href="${readings.usccbLink}" target="_blank" rel="noopener">Compare official translation at USCCB →</a>`
+      : '');
+  }
+  panel.classList.add('open');
+  btn.textContent = '📖 Hide readings';
 }
 
 function getJournalDates() {
