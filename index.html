@@ -500,6 +500,7 @@ body {
 .session-image { display: none; width: 100%; max-height: 240px; object-fit: cover; border-radius: 14px; margin-bottom: 16px; background: var(--bg3); }
 .session-image.show { display: block; }
 .session-title { font-size: 24px; font-weight: 700; line-height: 1.35; color: var(--text); margin-bottom: 16px; }
+.session-card.reflection .session-title { font-weight: 600; color: var(--text2); font-style: italic; }
 .session-body { font-size: 16px; line-height: 1.85; color: var(--text2); white-space: pre-line; }
 .session-body.session-body-empty { font-size: 14px; font-style: italic; color: var(--text3); }
 .session-link { display: none; margin-top: 14px; font-size: 14px; font-weight: 600; color: var(--accent); text-decoration: none; }
@@ -532,6 +533,7 @@ body {
   cursor: pointer;
   min-width: 34px;
 }
+.session-timer.reflection-hidden { visibility: hidden; }
 .session-timer.paused { color: var(--text3); background: var(--bg3); }
 .session-timer.finished { color: var(--green); background: var(--green-bg); }
 
@@ -762,8 +764,8 @@ body {
     </div>
   </div>
   <div class="session-bottom">
-    <button class="modal-btn session-complete-btn" onclick="completeSessionCard()">Complete →</button>
-    <div class="session-hint">Swipe left or tap Complete to continue</div>
+    <button class="modal-btn session-complete-btn" id="session-complete-btn" onclick="completeSessionCard()">Complete →</button>
+    <div class="session-hint" id="session-hint">Swipe left or tap Complete to continue</div>
   </div>
 </div>
 
@@ -888,16 +890,16 @@ const DEFAULT_TASKS = [
   { section: "Morning Prayer", id: "t24", text: "Daily Rotating Prayer", ref: "A different healing/deliverance prayer each day", rotatingKey: "dailyPrayer" },
   { section: "Morning Prayer", id: "t25", text: "Who and What I Am in Christ", ref: "A few identity truths to declare — rotates daily", rotatingKey: "identity" },
   { section: "During the Day", id: "t13", text: "Saint of the day — learn from them", dynamic: "saintOfDay" },
-  { section: "During the Day", id: "t14", text: "Stay on the offensive — be vigilant, not passive" },
-  { section: "During the Day", id: "t15", text: "Praise God regardless of how you feel" },
-  { section: "During the Day", id: "t16", text: "Note any moment where God seemed to speak" },
-  { section: "Adoration", id: "t17", text: "Sit before the Blessed Sacrament" },
-  { section: "Adoration", id: "t18", text: "Listen before adoration — don't rush in with requests" },
-  { section: "Adoration", id: "t19", text: "Sit even if distracted — keep returning" },
-  { section: "Adoration", id: "t20", text: "Ask: Is there anything You want to free me from, Lord?" },
+  { section: "During the Day", id: "t14", text: "Stay on the offensive — be vigilant, not passive", reflection: true },
+  { section: "During the Day", id: "t15", text: "Praise God regardless of how you feel", reflection: true },
+  { section: "During the Day", id: "t16", text: "Note any moment where God seemed to speak", reflection: true },
+  { section: "Adoration", id: "t17", text: "Sit before the Blessed Sacrament", reflection: true },
+  { section: "Adoration", id: "t18", text: "Listen before adoration — don't rush in with requests", reflection: true },
+  { section: "Adoration", id: "t19", text: "Sit even if distracted — keep returning", reflection: true },
+  { section: "Adoration", id: "t20", text: "Ask: Is there anything You want to free me from, Lord?", reflection: true },
   { section: "Night", id: "t21", text: "Set a reasonable sleep time and keep it" },
   { section: "Night", id: "t22", text: "Phone off / out of bedroom" },
-  { section: "Night", id: "t23", text: "Brief examen — where was God today?" },
+  { section: "Night", id: "t23", text: "Brief examen — where was God today?", reflection: true },
 ];
 
 const SECTION_ICONS = {
@@ -1644,7 +1646,14 @@ function renderSessionCard() {
   document.getElementById('session-journal-btn').classList.toggle('show', !!task.journalPrompt);
   document.getElementById('session-scroll').scrollTop = 0;
 
+  const timerEl = document.getElementById('session-timer');
+  timerEl.classList.toggle('reflection-hidden', !!task.reflection);
+  if (task.reflection) stopCardTimer();
+  document.getElementById('session-complete-btn').textContent = task.reflection ? 'Continue when ready →' : 'Complete →';
+  document.getElementById('session-hint').textContent = task.reflection ? 'No rush — swipe left or tap when ready' : 'Swipe left or tap Complete to continue';
+
   const card = document.getElementById('session-card');
+  card.classList.toggle('reflection', !!task.reflection);
   card.style.transition = 'none';
   card.style.transform = 'translateX(28px)';
   card.style.opacity = '0';
